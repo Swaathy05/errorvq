@@ -42,16 +42,8 @@ logger.info("Starting Virtual Queue System")
 
 # Initialize Flask app
 app = Flask(__name__)
-secret_key = os.getenv('SECRET_KEY')
-if not secret_key:
-    # Generate a consistent secret key if not provided
-    # This ensures the key remains the same across restarts unless explicitly changed
-    host_id = socket.gethostname() if hasattr(socket, 'gethostname') else 'unknown'
-    secret_key = hashlib.sha256(host_id.encode()).hexdigest()
-    logger.info(f"Generated SECRET_KEY from hostname: {host_id[:4]}...")
-
-app.config['SECRET_KEY'] = secret_key
-logger.info(f"Using SECRET_KEY: {secret_key[:5]}...")
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-key')
+logger.info(f"Using SECRET_KEY: {app.config['SECRET_KEY'][:5]}...")
 
 # Configure SQLite database - use a persistent path for Railway
 DB_PATH = os.getenv('DB_PATH', 'queue_system.db')
@@ -88,11 +80,15 @@ except Exception as e:
     logger.error(traceback.format_exc())
 
 # Error handler for all exceptions
+@app.errorhandler(500)
+def internal_error(error):
+    app.logger.error(f'Server Error: {error}')
+    return "Internal Server Error", 500
+
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logger.error(f"Unhandled exception: {str(e)}")
-    logger.error(traceback.format_exc())
-    return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+    app.logger.error(f'Unhandled Exception: {e}')
+    return "Internal Server Error", 500
 
 # Simple health check that doesn't require database
 @app.route('/api/health')
@@ -213,46 +209,7 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    # If user is logged in, redirect to dashboard - but provide alternate navigation
-    html = '''
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Virtual Queue System</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="container mt-5">
-            <div class="jumbotron text-center">
-                <h1 class="display-4">Welcome to Virtual Queue System</h1>
-                <p class="lead">A smart solution for managing customer queues</p>
-                <hr class="my-4">
-            </div>
-            
-            <div class="row mt-5">
-                <div class="col-md-6 mx-auto">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Choose an option</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-3">
-                                <a href="/login" class="btn btn-primary btn-lg">Login</a>
-                                <a href="/register" class="btn btn-success btn-lg">Register</a>
-                                <a href="/admin" class="btn btn-info btn-lg">Admin Panel</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-    </html>
-    '''
-    return html
+    return "App is running!"
 
 @app.route('/health')
 def health():
@@ -1164,12 +1121,8 @@ def delay_customer(customer_id):
 application = app
 
 if __name__ == "__main__":
-    try:
-        port = int(os.getenv('PORT', 5000))
-        app.run(host='0.0.0.0', port=port)
-    finally:
-        if cap is not None:
-            cap.release()
+    port = int(os.getenv("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 # Initialize YOLO and other global variables
 model = None
