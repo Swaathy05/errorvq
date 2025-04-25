@@ -5,7 +5,7 @@
     "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
-    "startCommand": "gunicorn wsgi:app --bind 0.0.0.0:$PORT --worker-class gevent --log-level debug",
+    "startCommand": "gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 wsgi:app --bind 0.0.0.0:$PORT --log-level debug",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

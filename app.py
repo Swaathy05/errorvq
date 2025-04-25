@@ -207,9 +207,7 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    if 'admin_id' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    return "WebSocket server is running!"
 
 @app.route('/health')
 def health():
@@ -1120,6 +1118,14 @@ def delay_customer(customer_id):
         logger.error(f"Error delaying customer: {str(e)}")
         return jsonify({'error': 'An error occurred while delaying customer'}), 500
 
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
 # Ensure application variable exists for Gunicorn
 application = app
 
@@ -1127,4 +1133,4 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port)
