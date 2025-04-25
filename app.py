@@ -46,7 +46,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-key')
 logger.info(f"Using SECRET_KEY: {app.config['SECRET_KEY'][:5]}...")
 
 # Configure SQLite database - use a persistent path for Railway
-DB_PATH = os.getenv('DB_PATH', 'queue_system.db')
+DB_PATH = os.getenv('DATABASE_URL', 'sqlite:///queue_system.db')
 
 # Ensure database directory exists
 db_dir = os.path.dirname(DB_PATH)
@@ -57,7 +57,7 @@ if db_dir and not os.path.exists(db_dir):
     except Exception as e:
         logger.error(f"Error creating database directory {db_dir}: {e}")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_PATH
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
