@@ -1143,7 +1143,6 @@ application = app
 @app.route('/video_feed')
 def video_feed():
     def generate_frames():
-        # Create a dummy frame for deployment
         frame = np.zeros((480, 640, 3), dtype=np.uint8)
         cv2.putText(frame, "Live Monitoring Active", (50, 240),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
