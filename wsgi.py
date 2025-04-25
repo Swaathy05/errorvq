@@ -1,4 +1,4 @@
-from app import app, socketio
+from app import app
 
 # Health check function
 def health_check():
@@ -11,4 +11,4 @@ def health_check():
         return False
 
 if __name__ == "__main__":
-    socketio.run(app) 
+    app.run() 

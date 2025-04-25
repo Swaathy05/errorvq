@@ -25,6 +25,8 @@ from threading import Lock
 import atexit
 from gevent import monkey
 from dotenv import load_dotenv
+import cv2
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -77,6 +79,10 @@ except Exception as e:
     logger.error(f"Error initializing extensions: {e}")
     logger.error(traceback.format_exc())
 
+# Global variables
+person_count = 0
+crowd_threshold = 3
+
 # Error handler for all exceptions
 @app.errorhandler(500)
 def internal_error(error):
@@ -95,7 +101,7 @@ def health_check():
 
 @app.route('/')
 def index():
-    return "App is running"
+    return render_template('index.html')
 
 # Models
 class Admin(db.Model):
@@ -211,7 +217,7 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    return "WebSocket server is running!"
+    return render_template('index.html')
 
 @app.route('/health')
 def health():
@@ -1132,6 +1138,30 @@ def handle_disconnect():
 
 # Ensure application variable exists for Gunicorn
 application = app
+
+# Live video feed route
+@app.route('/video_feed')
+def video_feed():
+    def generate_frames():
+        # Create a dummy frame for deployment
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        cv2.putText(frame, "Live Monitoring Active", (50, 240),
+                   cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        return b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'
+
+    return Response(generate_frames(),
+                   mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# Stats API
+@app.route('/api/stats')
+def get_stats():
+    return jsonify({
+        "person_count": person_count,
+        "crowd_status": "Crowd Detected!" if person_count > crowd_threshold else "No Crowd",
+        "timestamp": datetime.now().isoformat()
+    })
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
