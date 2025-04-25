@@ -209,7 +209,7 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    return "App is running!"
+    return "Hello from Flask!"
 
 @app.route('/health')
 def health():
@@ -813,7 +813,10 @@ def admin_panel():
 # Basic route for testing
 @app.route('/test')
 def test():
-    return jsonify({"message": "Test endpoint working!", "environment": dict(os.environ)}), 200
+    return jsonify({
+        "status": "success",
+        "message": "Application is running correctly"
+    })
 
 # Function to update positions for customers in a queue
 def update_customer_positions(cashier_id, start_position):
