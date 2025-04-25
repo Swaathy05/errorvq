@@ -30,6 +30,32 @@
     .status-badge {
         text-transform: capitalize;
     }
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+    .btn-icon {
+        margin-left: 0.5rem;
+    }
+    .btn-primary, .btn-secondary {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+    .btn-secondary {
+        background: #f3f4f6;
+        color: var(--text);
+    }
+    .btn-primary:hover, .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
 </style>
 {% endblock %}
 
@@ -39,8 +65,8 @@
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
 </div>
 
-<div class="row">
-    <div class="col-md-4">
+<div class="manage-header">
+    <div class="company-info">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">Company Details</h5>
@@ -56,7 +82,6 @@
                 <p><strong>Total Delayed:</strong> {{ stats.total_delayed }}</p>
                 <p><strong>Average Wait Time:</strong> {{ (stats.avg_wait_time / 60)|round(1) }} minutes</p>
                 <a href="{{ url_for('export_history', company_id=company.id) }}" class="btn btn-outline-primary">Export History</a>
-
             </div>
         </div>
 
@@ -75,6 +100,19 @@
         </div>
     </div>
 
+    <div class="header-actions">
+        <button class="btn btn-primary" onclick="window.location.href='/live_monitoring/{{ company.id }}'">
+            <span>Live Monitoring</span>
+            <div class="btn-icon">📹</div>
+        </button>
+        <button class="btn btn-secondary" onclick="window.location.href='/crowd_prediction/{{ company.id }}'">
+            <span>Crowd Prediction</span>
+            <div class="btn-icon">📊</div>
+        </button>
+    </div>
+</div>
+
+<div class="row">
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">

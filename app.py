@@ -1,6 +1,6 @@
 # app.py - Main application file using SQLite for reliability
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, render_template_string
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, render_template_string, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -19,6 +19,17 @@ import sys
 import traceback
 import socket
 import hashlib
+import cv2
+import numpy as np
+from ultralytics import YOLO
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io
+import warnings
+import time
+from threading import Lock
+import atexit
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, 
@@ -463,6 +474,7 @@ def manage_company(company_id):
     qr_code = base64.b64encode(buffered.getvalue()).decode('utf-8')
     
     return render_template('manage_company.html', company=company, cashiers=cashiers, stats=stats, qr_code=qr_code)
+
 @app.route('/export/<int:company_id>')
 @login_required
 def export_history(company_id):
@@ -1168,3 +1180,91 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Error running the server: {e}")
         logger.error(traceback.format_exc())
+
+# Initialize YOLO and other global variables
+model = None
+cap = None
+lock = Lock()
+last_person_count = 0
+heatmap_points = []
+frame_count = 0
+crowd_threshold = 3
+last_heatmap_update = 0
+heatmap_update_interval = 1
+last_heatmap_base64 = ""
+
+def initialize_monitoring():
+    global model, cap
+    if model is None:
+        model = YOLO("yolov8n.pt")
+    if cap is None:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Error: Could not open webcam")
+            return False
+    return True
+
+@app.route('/live_monitoring/<int:company_id>')
+@login_required
+def live_monitoring(company_id):
+    company = Company.query.get_or_404(company_id)
+    if not initialize_monitoring():
+        flash("Error: Could not initialize camera", "error")
+        return redirect(url_for('manage_company', company_id=company_id))
+    
+    return render_template(
+        'live_monitoring.html',
+        company=company,
+        person_count=last_person_count,
+        threshold=crowd_threshold,
+        crowd_status="No Crowd",
+        heatmap_base64=""
+    )
+
+# Add all the functions from your provided code:
+# - generate_heatmap()
+# - generate_frames()
+# - video_feed()
+# - get_stats()
+
+@app.route('/video_feed')
+@login_required
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/get_stats')
+@login_required
+def get_stats():
+    global last_person_count, crowd_threshold, last_heatmap_base64
+    with lock:
+        current_count = last_person_count
+    crowd_status = "Crowd Detected!" if current_count > crowd_threshold else "No Crowd"
+    return jsonify({
+        "person_count": current_count,
+        "crowd_status": crowd_status,
+        "heatmap_base64": last_heatmap_base64
+    })
+
+# Add cleanup function
+@atexit.register
+def cleanup():
+    global cap
+    if cap is not None:
+        cap.release()
+
+# Add this before initializing the camera
+def check_camera_access():
+    try:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Error: Could not access webcam. Please check camera connection.")
+            return False
+        cap.release()
+        return True
+    except Exception as e:
+        print(f"Error checking camera: {str(e)}")
+        return False
+
+# Add this to your initialization
+if not check_camera_access():
+    print("Warning: Camera not accessible. Live monitoring features will be disabled.")
