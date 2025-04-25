@@ -88,10 +88,14 @@ def handle_exception(e):
     app.logger.error(f'Unhandled Exception: {e}')
     return "Internal Server Error", 500
 
-# Simple health check that doesn't require database
+# Health check endpoint
 @app.route('/api/health')
-def api_health():
-    return jsonify({"status": "API is running", "time": str(datetime.utcnow())}), 200
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+@app.route('/')
+def index():
+    return "App is running"
 
 # Models
 class Admin(db.Model):
