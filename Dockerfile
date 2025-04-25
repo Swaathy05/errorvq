@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Create data directory for SQLite
+RUN mkdir -p /app/data && \
+    chmod 777 /app/data
+
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
@@ -29,9 +33,11 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
+ENV DATABASE_URL=sqlite:///data/queue_system.db
 
 # Create and switch to a non-root user
-RUN useradd -m myuser
+RUN useradd -m myuser && \
+    chown -R myuser:myuser /app
 USER myuser
 
 # Command to run the application

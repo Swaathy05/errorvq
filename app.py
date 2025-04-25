@@ -50,13 +50,13 @@ logger.info("Starting Virtual Queue System")
 app = Flask(__name__)
 
 # Configure app
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///queue_system.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///data/queue_system.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-key')
 logger.info(f"Using SECRET_KEY: {app.config['SECRET_KEY'][:5]}...")
 
 # Ensure database directory exists
-db_dir = os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'])
+db_dir = os.path.dirname(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
 if db_dir and not os.path.exists(db_dir):
     try:
         os.makedirs(db_dir, exist_ok=True)
