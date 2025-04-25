@@ -207,7 +207,9 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    return "Hello from Flask!"
+    if 'admin_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
 
 @app.route('/health')
 def health():
