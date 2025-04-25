@@ -30,6 +30,8 @@ import warnings
 import time
 from threading import Lock
 import atexit
+from gevent import monkey
+monkey.patch_all()
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, 
@@ -1162,24 +1164,12 @@ def delay_customer(customer_id):
 application = app
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    logger.info(f"Starting server on port {port}")
-    
     try:
-        from gevent import pywsgi
-        from geventwebsocket.handler import WebSocketHandler
-        
-        logger.info("Using gevent WebSocket server")
-        server = pywsgi.WSGIServer(
-            ('0.0.0.0', port), 
-            app, 
-            handler_class=WebSocketHandler,
-            log=logger
-        )
-        server.serve_forever()
-    except Exception as e:
-        logger.error(f"Error running the server: {e}")
-        logger.error(traceback.format_exc())
+        port = int(os.getenv('PORT', 5000))
+        app.run(host='0.0.0.0', port=port)
+    finally:
+        if cap is not None:
+            cap.release()
 
 # Initialize YOLO and other global variables
 model = None
@@ -1195,14 +1185,41 @@ last_heatmap_base64 = ""
 
 def initialize_monitoring():
     global model, cap
-    if model is None:
-        model = YOLO("yolov8n.pt")
-    if cap is None:
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            print("Error: Could not open webcam")
-            return False
-    return True
+    try:
+        if model is None:
+            model = YOLO("yolov8n.pt")
+        if cap is None:
+            # Try different camera indices if 0 doesn't work
+            for index in range(3):
+                cap = cv2.VideoCapture(index)
+                if cap.isOpened():
+                    break
+            if not cap.isOpened():
+                print("Warning: Could not open camera, using dummy video")
+                # Create a dummy video feed for deployment
+                cap = create_dummy_video()
+        return True
+    except Exception as e:
+        print(f"Error initializing monitoring: {str(e)}")
+        return False
+
+def create_dummy_video():
+    class DummyCapture:
+        def read(self):
+            # Create a blank frame
+            frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            # Add text
+            cv2.putText(frame, "Camera Unavailable", (200, 240),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            return True, frame
+        
+        def isOpened(self):
+            return True
+        
+        def release(self):
+            pass
+    
+    return DummyCapture()
 
 @app.route('/live_monitoring/<int:company_id>')
 @login_required
@@ -1230,7 +1247,12 @@ def live_monitoring(company_id):
 @app.route('/video_feed')
 @login_required
 def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    try:
+        return Response(generate_frames(), 
+                       mimetype='multipart/x-mixed-replace; boundary=frame')
+    except Exception as e:
+        print(f"Error in video feed: {str(e)}")
+        return "Video feed error", 500
 
 @app.route('/get_stats')
 @login_required
