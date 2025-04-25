@@ -11,3 +11,5 @@ eventlet==0.33.3
 qrcode==7.4.2
 Pillow==10.2.0
 python-dotenv==1.0.1
+opencv-python-headless==4.8.1.78
+numpy==1.26.0
