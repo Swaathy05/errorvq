@@ -40,5 +40,8 @@ RUN useradd -m myuser && \
     chown -R myuser:myuser /app
 USER myuser
 
+# Expose port 8080
+EXPOSE 8080
+
 # Command to run the application
-CMD gunicorn --worker-class gevent --workers 1 --bind 0.0.0.0:$PORT wsgi:app 
+CMD gunicorn --worker-class gevent --workers 1 --bind 0.0.0.0:8080 wsgi:app 
